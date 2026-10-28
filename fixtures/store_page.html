@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head><title>Secret Lair | test fixture</title></head>
+<body>
+<!-- Synthetic fixture: minimal shape of the public storefront page. -->
+<div class="notify-me">
+  <p class="notify-me-title">Bracket Drop ] Fallback</p>
+  <p class="notify-me-subtitle">Coming Soon</p>
+</div>
+<script>
+angular.module("pepita")
+.controller('NotifyMeControllerbottom', function($rootScope,$scope) {
+  $scope.is_first_time = true;
+  $scope.upcoming_event_slides = [{"visible":true,"group_slide":false,"title":"Doomsdrop","subtitle":"Coming Soon","anchor_link":"doomsdrop","button_text":"GET NOTIFIED"},{"visible":true,"title":"Set Phasers to Superdrop","subtitle":"Coming Soon","anchor_link":"set_phasers",},{"visible":false,"title":"Hidden Internal Draft","subtitle":"Coming Soon","anchor_link":"hidden-draft"}];
+  $scope.initializeEvents = function() {};
+});
+</script>
+</body>
+</html>

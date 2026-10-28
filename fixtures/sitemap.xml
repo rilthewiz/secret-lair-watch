@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic fixture: minimal shape of the official sitemap. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  <url>
+    <loc>https://magic.wizards.com/en</loc>
+    <lastmod>2026-10-27T18:55:26.982Z</lastmod>
+  </url>
+  <url>
+    <loc>https://magic.wizards.com/en/news/announcements/secret-lair-set-phasers-to-superdrop</loc>
+    <lastmod>2026-10-27T16:00:09.876Z</lastmod>
+  </url>
+  <url>
+    <loc>https://magic.wizards.com/en/news/announcements/reality-fracture-secret-lair-bundle-delayed</loc>
+    <lastmod>2026-10-19T18:01:20.403Z</lastmod>
+  </url>
+  <url>
+    <loc>https://magic.wizards.com/en/news/feature/unrelated-article</loc>
+  </url>
+</urlset>
