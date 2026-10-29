@@ -247,7 +247,7 @@ Linux/macOS cron (hourly at :17 to avoid thundering herds):
 python -m unittest discover -s tests -v
 ```
 
-134 tests, no network. They cover:
+135 tests, no network. They cover:
 
 - storefront JSON extraction (brackets/quotes inside strings, trailing commas,
   hidden slides, duplicates, HTML fallback, stable keys)

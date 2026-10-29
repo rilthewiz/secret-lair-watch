@@ -1,3 +1,3 @@
 """lairwatch - a polite watcher for official Magic: The Gathering Secret Lair drops."""
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

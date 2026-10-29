@@ -140,6 +140,15 @@ class DesktopTests(unittest.TestCase):
         self.assertIn("LAIRWATCH_TOAST_TITLE", script)
         self.assertIn("LAIRWATCH_TOAST_BODY", script)
 
+    def test_windows_toast_calls_show_on_the_notifier_instance(self) -> None:
+        # ToastNotificationManager has no static Show(); the call must be an
+        # instance call on the object returned by CreateToastNotifier. The
+        # static form compiles fine and only fails at runtime as
+        # "does not contain a method named 'Show'" (found by a live smoke test).
+        script = DesktopNotifier(system="windows")._command("title", "body")[-1]
+        self.assertIn("$notifier.Show($toast)", script)
+        self.assertNotIn("ToastNotificationManager]::Show", script)
+
     def test_unsupported_system_send_raises(self) -> None:
         with self.assertRaises(NotifierError):
             DesktopNotifier(system="plan9").send(batch())
