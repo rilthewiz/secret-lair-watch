@@ -22,14 +22,16 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict(os.environ, clean, clear=True):
             config = load_config(None)
         self.assertEqual(config.interval_seconds, 3600)
-        self.assertEqual(len(config.sources), 2)
+        self.assertEqual(len(config.sources), 3)
         self.assertFalse(config.notifiers.email.enabled)
+        self.assertFalse(config.notifiers.discord.enabled)
         self.assertTrue(config.notifiers.console_enabled)
+        self.assertEqual(config.notifiers.discord.webhook_env, "LAIRWATCH_DISCORD_WEBHOOK")
         self.assertEqual(config.drop_schedule, [])
 
     def test_sample_config_is_valid_and_has_placeholders_only(self) -> None:
         config = load_config(EXAMPLE)
-        self.assertEqual(len(config.sources), 2)
+        self.assertEqual(len(config.sources), 3)
         self.assertEqual(len(config.drop_schedule), 1)
         self.assertEqual(config.notifiers.email.smtp_host, "smtp.example.com")
         self.assertIn("example.com", config.notifiers.email.from_addr)
@@ -102,6 +104,36 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(ConfigError):
             load_config(path)
 
+    def test_discord_enabled_requires_a_named_env_var(self) -> None:
+        path = Path(temp_dir()) / "discord.json"
+        path.write_text(
+            json.dumps(
+                {"notifiers": {"discord": {"enabled": True, "webhook_env": "  "}}}
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaises(ConfigError):
+            load_config(path)
+
+    def test_discord_webhook_is_never_read_from_the_config_file(self) -> None:
+        path = Path(temp_dir()) / "leak.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "notifiers": {
+                        "discord": {
+                            "enabled": True,
+                            "webhook_url": "https://discord.com/api/webhooks/1/secret",
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        config = load_config(path)
+        self.assertEqual(config.notifiers.discord.webhook_env, "LAIRWATCH_DISCORD_WEBHOOK")
+        self.assertFalse(hasattr(config.notifiers.discord, "webhook_url"))
+
     def test_naive_drop_time_is_rejected(self) -> None:
         path = Path(temp_dir()) / "sched.json"
         path.write_text(
@@ -127,11 +159,13 @@ class ConfigTests(unittest.TestCase):
             "LAIRWATCH_LOG_LEVEL": "debug",
             "LAIRWATCH_STATE_PATH": "custom/state.json",
             "LAIRWATCH_EMAIL_ENABLED": "false",
+            "LAIRWATCH_DISCORD_ENABLED": "true",
         }
         with mock.patch.dict(os.environ, env, clear=False):
             config = load_config(None)
         self.assertEqual(config.interval_seconds, 1800)
         self.assertEqual(config.log_level, "DEBUG")
+        self.assertTrue(config.notifiers.discord.enabled)
         self.assertEqual(str(config.state_path), os.path.join("custom", "state.json"))
 
     def test_bad_environment_value_is_reported(self) -> None:
@@ -150,6 +184,15 @@ class ConfigTests(unittest.TestCase):
         path.write_text("{ not json", encoding="utf-8")
         with self.assertRaises(ConfigError):
             load_config(path)
+
+    def test_utf8_bom_is_tolerated(self) -> None:
+        # Notepad and `Set-Content -Encoding utf8` in Windows PowerShell both
+        # write a BOM; a config edited that way must still load.
+        path = Path(temp_dir()) / "bom.json"
+        body = json.dumps({"interval_seconds": 1800})
+        path.write_bytes(b"\xef\xbb\xbf" + body.encode("utf-8"))
+        config = load_config(path)
+        self.assertEqual(config.interval_seconds, 1800)
 
 
 if __name__ == "__main__":

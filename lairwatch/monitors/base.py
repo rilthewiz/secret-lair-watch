@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 
 from ..http_client import HttpClient
 
@@ -18,6 +18,9 @@ class Item:
     title: str
     url: str
     status: str
+    # Other stable identifiers for the same thing (slugged anchor, title, ...).
+    # Used so that renaming a drop does not look like a brand-new drop.
+    aliases: Tuple[str, ...] = ()
 
     def summary(self) -> str:
         return f"{self.title} [{self.status}]"

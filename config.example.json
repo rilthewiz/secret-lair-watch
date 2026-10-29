@@ -1,5 +1,5 @@
 {
-  "user_agent": "secret-lair-watch/0.1 (+personal notification tool; contact: you@example.com)",
+  "user_agent": "secret-lair-watch/0.2 (+personal notification tool; contact: you@example.com)",
   "interval_seconds": 3600,
   "min_interval_seconds": 900,
   "jitter_ratio": 0.1,
@@ -40,6 +40,14 @@
       "url_pattern": "/en/news/.*secret-lair",
       "notify_on_status_change": false,
       "alert_on_first_run": false
+    },
+    {
+      "name": "chaos_vault",
+      "type": "secret_lair_chaos_vault",
+      "enabled": false,
+      "url": "https://secretlair.wizards.com/us/chaosvault",
+      "notify_on_status_change": true,
+      "alert_on_first_run": false
     }
   ],
   "notifiers": {
@@ -48,6 +56,11 @@
     },
     "desktop": {
       "enabled": true
+    },
+    "discord": {
+      "enabled": false,
+      "webhook_env": "LAIRWATCH_DISCORD_WEBHOOK",
+      "timeout_seconds": 10
     },
     "email": {
       "enabled": false,

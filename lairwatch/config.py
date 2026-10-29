@@ -17,11 +17,15 @@ from typing import Any, Dict, List, Optional
 from .schedule import DropReminder, ScheduleError, parse_schedule
 
 DEFAULT_USER_AGENT = (
-    "secret-lair-watch/0.1 (+personal notification tool; "
+    "secret-lair-watch/0.2 (+personal notification tool; "
     "contact: set-user-agent-in-config)"
 )
 
-KNOWN_SOURCE_TYPES = ("secret_lair_store", "wotc_sitemap")
+KNOWN_SOURCE_TYPES = (
+    "secret_lair_store",
+    "wotc_sitemap",
+    "secret_lair_chaos_vault",
+)
 
 # Hard floor for polling. This is intentionally conservative: the storefront is
 # a live commerce site and hammers poorly under automated polling.
@@ -58,6 +62,16 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "notify_on_status_change": False,
             "alert_on_first_run": False,
         },
+        {
+            # Experimental: the page exposes no documented open/closed flag, so
+            # this is inferred from the notify-me form. Off by default.
+            "name": "chaos_vault",
+            "type": "secret_lair_chaos_vault",
+            "enabled": False,
+            "url": "https://secretlair.wizards.com/us/chaosvault",
+            "notify_on_status_change": True,
+            "alert_on_first_run": False,
+        },
     ],
     "remind_open_browser": False,
     "remind_max_wait_hours": 72,
@@ -67,6 +81,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "notifiers": {
         "console": {"enabled": True},
         "desktop": {"enabled": True},
+        "discord": {
+            "enabled": False,
+            "webhook_env": "LAIRWATCH_DISCORD_WEBHOOK",
+            "timeout_seconds": 10,
+        },
         "email": {
             "enabled": False,
             "smtp_host": "",
@@ -109,10 +128,18 @@ class EmailConfig:
 
 
 @dataclass
+class DiscordConfig:
+    enabled: bool = False
+    webhook_env: str = "LAIRWATCH_DISCORD_WEBHOOK"
+    timeout_seconds: int = 10
+
+
+@dataclass
 class NotifierConfig:
     console_enabled: bool = True
     desktop_enabled: bool = True
     email: EmailConfig = field(default_factory=EmailConfig)
+    discord: DiscordConfig = field(default_factory=DiscordConfig)
 
 
 @dataclass
@@ -178,7 +205,10 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
 
 def _read_config_file(path: Path) -> Dict[str, Any]:
     try:
-        raw = path.read_text(encoding="utf-8")
+        # utf-8-sig: Windows Notepad and PowerShell's `Set-Content -Encoding
+        # utf8` prepend a byte-order mark, which plain utf-8 would keep as a
+        # stray character and then fail to parse as JSON.
+        raw = path.read_text(encoding="utf-8-sig")
     except FileNotFoundError as exc:
         raise ConfigError(f"config file not found: {path}") from exc
     except OSError as exc:
@@ -278,10 +308,33 @@ def _parse_notifiers(raw: Any) -> NotifierConfig:
 
     console_raw = raw.get("console") or {}
     desktop_raw = raw.get("desktop") or {}
+    discord_raw = raw.get("discord") or {}
+    if not isinstance(discord_raw, dict):
+        raise ConfigError("'notifiers.discord' must be an object")
+
+    try:
+        discord_timeout = int(discord_raw.get("timeout_seconds", 10))
+    except (TypeError, ValueError) as exc:
+        raise ConfigError("'notifiers.discord.timeout_seconds' must be an integer") from exc
+
+    discord = DiscordConfig(
+        enabled=_bool(discord_raw.get("enabled"), False),
+        webhook_env=str(
+            discord_raw.get("webhook_env") or "LAIRWATCH_DISCORD_WEBHOOK"
+        ).strip(),
+        timeout_seconds=max(discord_timeout, 1),
+    )
+    if discord.enabled and not discord.webhook_env:
+        raise ConfigError(
+            "discord notifier is enabled but 'webhook_env' is empty; name the "
+            "environment variable that holds the webhook URL"
+        )
+
     return NotifierConfig(
         console_enabled=_bool(console_raw.get("enabled"), True),
         desktop_enabled=_bool(desktop_raw.get("enabled"), True),
         email=email,
+        discord=discord,
     )
 
 
@@ -311,6 +364,8 @@ def _apply_env(config: Config) -> Config:
         config.notifiers.desktop_enabled = value
     if (value := _env_bool("LAIRWATCH_EMAIL_ENABLED")) is not None:
         config.notifiers.email.enabled = value
+    if (value := _env_bool("LAIRWATCH_DISCORD_ENABLED")) is not None:
+        config.notifiers.discord.enabled = value
     if (value := _env("LAIRWATCH_SMTP_HOST")) is not None:
         config.notifiers.email.smtp_host = value
     if (value := _env("LAIRWATCH_SMTP_PORT")) is not None:

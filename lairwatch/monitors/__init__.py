@@ -5,12 +5,14 @@ from __future__ import annotations
 from typing import Dict, Type
 
 from .base import Item, Monitor, ParseError
+from .chaos_vault import ChaosVaultMonitor
 from .secret_lair_store import SecretLairStoreMonitor
 from .wotc_sitemap import WotcSitemapMonitor
 
 MONITORS: Dict[str, Type[Monitor]] = {
     SecretLairStoreMonitor.type_name: SecretLairStoreMonitor,
     WotcSitemapMonitor.type_name: WotcSitemapMonitor,
+    ChaosVaultMonitor.type_name: ChaosVaultMonitor,
 }
 
 

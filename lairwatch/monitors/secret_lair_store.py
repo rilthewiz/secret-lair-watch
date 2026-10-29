@@ -17,7 +17,7 @@ import html
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from ..http_client import HttpClient
@@ -36,6 +36,21 @@ FALLBACK_TITLE_RE = re.compile(
 def _slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     return slug or "unnamed"
+
+
+def _aliases(anchor: str, title: str, event_name: str) -> Tuple[str, ...]:
+    """Stable alternative identifiers for one drop.
+
+    Wizards sometimes edits a title (``Doomsdrop`` -> ``Doomsdrop II``) or the
+    anchor, but rarely both at once. Recording both means a rename is recognised
+    as the same drop instead of arriving as a brand-new alert.
+    """
+    values = {
+        _slugify(anchor) if anchor else "",
+        _slugify(title) if title else "",
+        _slugify(event_name) if event_name else "",
+    }
+    return tuple(sorted(value for value in values if value and value != "unnamed"))
 
 
 def _balanced_array(text: str, start: int) -> Optional[str]:
@@ -165,7 +180,15 @@ class SecretLairStoreMonitor(Monitor):
             url = f"{self._base_url()}/us"
             if anchor:
                 url = f"{url}#{anchor}"
-            items.append(Item(key=key, title=title, url=url, status=status))
+            items.append(
+                Item(
+                    key=key,
+                    title=title,
+                    url=url,
+                    status=status,
+                    aliases=_aliases(anchor, title, str(slide.get("event_name") or "")),
+                )
+            )
         return items
 
     @staticmethod
@@ -183,5 +206,7 @@ class SecretLairStoreMonitor(Monitor):
             if key in seen:
                 continue
             seen.add(key)
-            items.append(Item(key=key, title=title, url="", status=status))
+            items.append(
+                Item(key=key, title=title, url="", status=status, aliases=_aliases("", title, ""))
+            )
         return items
