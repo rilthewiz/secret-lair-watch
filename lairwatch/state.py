@@ -29,6 +29,9 @@ class ItemRecord:
     first_seen: float
     last_seen: float
     last_alerted_status: Optional[str] = None
+    # Alternative identifiers seen for this item (e.g. the title when the anchor
+    # changed). Lets a rename match the existing record instead of re-alerting.
+    aliases: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -38,10 +41,14 @@ class ItemRecord:
             "first_seen": self.first_seen,
             "last_seen": self.last_seen,
             "last_alerted_status": self.last_alerted_status,
+            "aliases": self.aliases,
         }
 
     @classmethod
     def from_dict(cls, key: str, data: Dict[str, Any]) -> "ItemRecord":
+        aliases = data.get("aliases") or []
+        if not isinstance(aliases, list):
+            aliases = []
         return cls(
             key=key,
             title=str(data.get("title") or key),
@@ -50,6 +57,7 @@ class ItemRecord:
             first_seen=float(data.get("first_seen") or 0),
             last_seen=float(data.get("last_seen") or 0),
             last_alerted_status=data.get("last_alerted_status"),
+            aliases=[str(alias) for alias in aliases if str(alias)],
         )
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from .config import Config, SourceConfig
 from .http_client import AccessBlocked, FetchError, HttpClient, RateLimited
@@ -21,6 +21,7 @@ LOGGER = logging.getLogger(__name__)
 CONTENT_MARKERS = {
     "secret_lair_store": ("upcoming_event_slides", "notify-me-title"),
     "wotc_sitemap": ("<urlset", "<sitemapindex"),
+    "secret_lair_chaos_vault": ("chaos_vault", "chaos vault"),
 }
 
 
@@ -213,10 +214,11 @@ class Runner:
     ) -> int:
         now = time.time()
         new_count = 0
+        alias_index = self._alias_index(source_state)
 
         for item in items:
-            record = source_state.items.get(item.key)
-            if record is None:
+            record_key = self._match_key(source_state, alias_index, item)
+            if record_key is None:
                 should_alert = was_baselined or source_config.alert_on_first_run
                 if should_alert:
                     result.notifications.append(
@@ -241,8 +243,11 @@ class Runner:
                     first_seen=now,
                     last_seen=now,
                     last_alerted_status=item.status if should_alert else None,
+                    aliases=[alias for alias in item.aliases if alias != item.key],
                 )
                 continue
+
+            record = self._adopt_key(name, source_state, record_key, item, alias_index)
 
             if item.status != record.status:
                 if source_config.notify_on_status_change:
@@ -275,3 +280,59 @@ class Runner:
             record.last_seen = now
 
         return new_count
+
+    # ------------------------------------------------------------- identity
+    @staticmethod
+    def _alias_index(source_state: SourceState) -> Dict[str, str]:
+        """Map every known key and alias to the record key that owns it."""
+        index: Dict[str, str] = {}
+        for key, record in source_state.items.items():
+            index.setdefault(key, key)
+            for alias in record.aliases:
+                index.setdefault(alias, key)
+        return index
+
+    @staticmethod
+    def _match_key(
+        source_state: SourceState,
+        alias_index: Dict[str, str],
+        item,  # Item
+    ) -> Optional[str]:
+        """Return the existing record key for *item*, or None if it is new."""
+        if item.key in source_state.items:
+            return item.key
+        for alias in item.aliases:
+            key = alias_index.get(alias)
+            if key is not None and key in source_state.items:
+                return key
+        return None
+
+    @staticmethod
+    def _adopt_key(
+        name: str,
+        source_state: SourceState,
+        record_key: str,
+        item,  # Item
+        alias_index: Dict[str, str],
+    ) -> ItemRecord:
+        """Return the item's record, migrating it if only the key changed."""
+        record = source_state.items[record_key]
+        if record_key == item.key:
+            record.aliases = sorted((set(record.aliases) | set(item.aliases)) - {item.key})
+            return record
+
+        source_state.items.pop(record_key, None)
+        record.key = item.key
+        record.aliases = sorted(
+            (set(record.aliases) | set(item.aliases) | {record_key}) - {item.key}
+        )
+        source_state.items[item.key] = record
+        alias_index.clear()
+        alias_index.update(Runner._alias_index(source_state))
+        LOGGER.info(
+            "%s: %s was renamed to %s; treated as the same drop, no new-item alert",
+            name,
+            record_key,
+            item.key,
+        )
+        return record

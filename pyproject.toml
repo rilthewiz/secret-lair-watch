@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secret-lair-watch"
-version = "0.1.0"
+version = "0.2.0"
 description = "Polite notifier for official Magic: The Gathering Secret Lair announcements"
 readme = "README.md"
 requires-python = ">=3.12"
