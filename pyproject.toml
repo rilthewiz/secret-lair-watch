@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secret-lair-watch"
+version = "0.1.0"
+description = "Polite notifier for official Magic: The Gathering Secret Lair announcements"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "YOUR NAME" }]
+keywords = ["magic-the-gathering", "secret-lair", "notifications", "rss-alternative"]
+dependencies = []
+
+[project.scripts]
+lairwatch = "lairwatch.cli:main"
+
+[project.optional-dependencies]
+dev = []
+
+[tool.setuptools]
+packages = ["lairwatch", "lairwatch.monitors", "lairwatch.notifiers"]
+
+[tool.setuptools.package-data]
+lairwatch = ["py.typed"]

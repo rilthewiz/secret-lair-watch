@@ -1,0 +1,22 @@
+# Local runtime data - never commit
+state/
+logs/
+*.log
+*.ics
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Secrets and editor noise
+.env
+config.json
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

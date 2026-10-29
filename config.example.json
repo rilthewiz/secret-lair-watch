@@ -1,0 +1,65 @@
+{
+  "user_agent": "secret-lair-watch/0.1 (+personal notification tool; contact: you@example.com)",
+  "interval_seconds": 3600,
+  "min_interval_seconds": 900,
+  "jitter_ratio": 0.1,
+  "request_timeout_seconds": 30,
+  "retry_delay_seconds": 5,
+  "state_path": "state/state.json",
+  "log_level": "INFO",
+  "log_file": "logs/lairwatch.log",
+  "respect_robots_txt": true,
+  "robots_cache_seconds": 86400,
+  "prune_after_days": 365,
+  "remind_open_browser": false,
+  "remind_max_wait_hours": 72,
+  "remind_sound": true,
+  "remind_sound_file": null,
+  "drop_schedule": [
+    {
+      "label": "Example Superdrop",
+      "starts_at": "2026-11-02T09:00:00-08:00",
+      "url": "https://secretlair.wizards.com/us",
+      "reminders_minutes": [15, 0]
+    }
+  ],
+  "sources": [
+    {
+      "name": "secret_lair_store",
+      "type": "secret_lair_store",
+      "enabled": true,
+      "url": "https://secretlair.wizards.com/us",
+      "notify_on_status_change": true,
+      "alert_on_first_run": false
+    },
+    {
+      "name": "wotc_secret_lair_news",
+      "type": "wotc_sitemap",
+      "enabled": true,
+      "url": "https://magic.wizards.com/en/sitemap.xml",
+      "url_pattern": "/en/news/.*secret-lair",
+      "notify_on_status_change": false,
+      "alert_on_first_run": false
+    }
+  ],
+  "notifiers": {
+    "console": {
+      "enabled": true
+    },
+    "desktop": {
+      "enabled": true
+    },
+    "email": {
+      "enabled": false,
+      "smtp_host": "smtp.example.com",
+      "smtp_port": 587,
+      "starttls": true,
+      "from_addr": "you@example.com",
+      "to_addrs": [
+        "you@example.com"
+      ],
+      "username_env": "LAIRWATCH_SMTP_USER",
+      "password_env": "LAIRWATCH_SMTP_PASSWORD"
+    }
+  }
+}

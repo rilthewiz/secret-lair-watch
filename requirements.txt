@@ -1,0 +1,5 @@
+# No runtime dependencies.
+# secret-lair-watch uses only the Python 3.12+ standard library.
+#
+# Tests also use the standard library:
+#   python -m unittest discover -s tests -v
