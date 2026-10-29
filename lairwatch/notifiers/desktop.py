@@ -26,7 +26,10 @@ $texts.Item(0).AppendChild($template.CreateTextNode($env:LAIRWATCH_TOAST_TITLE))
 $texts.Item(1).AppendChild($template.CreateTextNode($env:LAIRWATCH_TOAST_BODY)) | Out-Null
 $toast = [Windows.UI.Notifications.ToastNotification]::new($template)
 $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Secret Lair Watch')
-[Windows.UI.Notifications.ToastNotificationManager]::Show($notifier, $toast)
+# Show() is an instance method on the toast notifier. Calling it statically on
+# ToastNotificationManager (the obvious-looking form) fails with "does not
+# contain a method named 'Show'" on Windows PowerShell 5.1.
+$notifier.Show($toast)
 """
 
 
